@@ -50,9 +50,8 @@ function parsePage($url) {
     $data['product_code'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомий код';
 
     // Парсимо конструкцію
-    preg_match('/Конструкция:\s*(.*?)<\/li>/s', $html, $matches);
-    $data['construction'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
-
+    preg_match('/Конструкция:\s*(.*?)<br\s*\/>/s', $html, $matches);
+    $data['construction'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
     // Парсимо особливість
     preg_match('/Особенность:\s*(.*?)<\/li>/s', $html, $matches);
     $data['feature'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
