@@ -20,14 +20,13 @@ function getPageContent($url) {
 function parsePage($url) {
     $html = getPageContent($url);
     $data = [];
-
-    // Парсимо назву продукту
+// Парсимо назву продукту
     preg_match('/<h1[^>]*>(.*?)<span/s', $html, $matches);
     $data['product_name'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомий продукт';
 
-    preg_match('/<p class="content px-2 "*>(.*?)<span/s', $html, $matches);
-    $data['product_description'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомий продукт';
- 
+    // Парсимо опис продукту
+    preg_match('/<div class="content px-2[^>]*>(.*?)<ul/s', $html, $matches);
+    $data['product_description'] = isset($matches[1]) ? cleanText($matches[1]) : 'Опис відсутній';
 
     // Парсимо ціну
     preg_match('/<div class="text-red-600.*?>(\d+)\s*<span.*?>₴<\/span>/s', $html, $matches);
@@ -45,14 +44,16 @@ function parsePage($url) {
     preg_match('/Тип:\s*<a.*?>(.*?)<\/a>/s', $html, $matches);
     $data['type'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
 
-    preg_match('/Код товара:\s*<a.*?>(.*?)<\/a>/s', $html, $matches);
-    $data['product_code'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
+    // Парсимо код товара
+    preg_match('/Код товара:\s*([\w\s+]+)/i', $html, $matches);
+    $data['product_code'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомий код';
+
     // Парсимо конструкцію
     preg_match('/Конструкция:\s*<a.*?>(.*?)<\/a>/s', $html, $matches);
     $data['construction'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
 
     // Парсимо особливість
-    preg_match('/Особенность:\s*<a.*?>(.*?)<\/a>/s', $html, $matches);
+    preg_match('/<b>(.*?)<\/b>/s', $html, $matches);
     $data['feature'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
 
     // Парсимо розмір двірників
@@ -102,8 +103,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['product_url'])) {
 
     // Підготовка SQL запиту
     $sql = "INSERT INTO products (category, product_name, product_price, make, model, year, 
-            driver_wiper_size, passenger_wiper_size, type, product_code, series, brand, construction, feature, product_description) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,)";
+                driver_wiper_size, passenger_wiper_size, type, product_code, series, brand, construction, feature, product_description) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ssdssssssssssss", 
@@ -116,11 +117,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['product_url'])) {
         $productData['driver_wiper_size'],
         $productData['passenger_wiper_size'],
         $productData['type'],
+        $productData['product_code'],
         $productData['series'],
         $productData['brand'],
         $productData['construction'],
         $productData['feature'],
-        $productData['product_code'],
         $productData['product_description']
     );
 

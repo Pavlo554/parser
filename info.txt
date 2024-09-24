@@ -12,3 +12,8 @@
 Рік випуска - year
 
 Тип кріплення - mounting_type
+
+
+Інформація - product_description
+Конструция - construction
+Особенность - fueature 
