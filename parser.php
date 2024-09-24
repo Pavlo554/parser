@@ -25,8 +25,8 @@ function parsePage($url) {
     $data['product_name'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомий продукт';
 
     // Парсимо опис продукту
-    preg_match('/<p class="content px-2 "*>(.*?)<span/s', $html, $matches);
-    $data['product_description'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомий продукт';
+    preg_match('/<div class="content px-2 ">\s*<p>(.*?)<\/p>/s', $html, $matches);
+    $data['product_description'] = isset($matches[1]) ? cleanText($matches[1]) : 'Опис відсутній';
 
     // Парсимо ціну
     preg_match('/<div class="text-red-600.*?>(\d+)\s*<span.*?>₴<\/span>/s', $html, $matches);
@@ -45,8 +45,8 @@ function parsePage($url) {
     $data['type'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
 
     // Парсимо код товара
-    preg_match('/<div class = ".content ul li"Код товара:\s*<a.*?>(.*?)<\/a>/s', $html, $matches);
-    $data['product_code'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
+    preg_match('/Код товара:\s*([\w\s+]+)/i', $html, $matches);
+    $data['product_code'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомий код';
 
     // Парсимо конструкцію
     preg_match('/Конструкция:\s*<a.*?>(.*?)<\/a>/s', $html, $matches);
@@ -102,29 +102,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['product_url'])) {
     $productData = parsePage($url);
 
     // Підготовка SQL запиту
-    // Підготовка SQL запиту
-        $sql = "INSERT INTO products (category, product_name, product_price, make, model, year, 
+    $sql = "INSERT INTO products (category, product_name, product_price, make, model, year, 
                 driver_wiper_size, passenger_wiper_size, type, product_code, series, brand, construction, feature, product_description) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssdssssssssssss", 
-            $productData['category'],
-            $productData['product_name'],
-            $productData['product_price'],
-            $productData['make'],
-            $productData['model'],
-            $productData['year'],
-            $productData['driver_wiper_size'],
-            $productData['passenger_wiper_size'],
-            $productData['type'],
-            $productData['product_code'],
-            $productData['series'],
-            $productData['brand'],
-            $productData['construction'],
-            $productData['feature'],
-            $productData['product_description']
-        );
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssdssssssssssss", 
+        $productData['category'],
+        $productData['product_name'],
+        $productData['product_price'],
+        $productData['make'],
+        $productData['model'],
+        $productData['year'],
+        $productData['driver_wiper_size'],
+        $productData['passenger_wiper_size'],
+        $productData['type'],
+        $productData['product_code'],
+        $productData['series'],
+        $productData['brand'],
+        $productData['construction'],
+        $productData['feature'],
+        $productData['product_description']
+    );
 
     if ($stmt->execute()) {
         echo "Новий запис успішно додано<br>";
