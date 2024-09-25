@@ -26,9 +26,16 @@ function parsePage($url) {
     $data['product_name'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомий продукт';
     
     // Парсимо ціну
-    preg_match('/<div class="text-red-600.*?>(\d+)\s*<span.*?>₴<\/span>/s', $html, $matches);
-    $data['product_price'] = isset($matches[1]) ? (float)$matches[1] : 0.0;
+    preg_match('/<div class="text-red-600[^>]*>(\d+)\s*<span.*?>₴<\/span>/s', $html, $matches);
 
+    // Якщо червона ціна знайдена
+    if (isset($matches[1])) {
+        $data['product_price'] = (float)$matches[1];
+    } else {
+        // Якщо червону ціну не знайдено, парсимо сіру ціну (звичайна ціна)
+        preg_match('/<div class="text-gray-700[^>]*>(\d+)\s*<span.*?>₴<\/span>/s', $html, $matches);
+        $data['product_price'] = isset($matches[1]) ? (float)$matches[1] : 0.0;
+    }
     // Опис продукту
     preg_match('/<div class="content px-2[^>]*>(.*?)<ul/s', $html, $matches);
     $data['product_description'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
@@ -52,12 +59,13 @@ function parsePage($url) {
     // Парсимо конструкцію
     preg_match('/Конструкция:\s*(.*?)<br\s*\/>/s', $html, $matches);
     $data['construction'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
+    
     // Парсимо особливість
     preg_match('/Особенность:\s*(.*?)<\/li>/s', $html, $matches);
     $data['feature'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
 
     // Парсимо розмір двірників
-    preg_match('/Размер:\s*(\d+)\s*мм.*?(\d+)\s*мм/s', $html, $matches);
+    preg_match('/Длина:\s*(\d+)\s*мм.*?(\d+)\s*мм/s', $html, $matches);
     $data['driver_wiper_size'] = isset($matches[1]) ? $matches[1] . ' мм' : 'Невідомо';
     $data['passenger_wiper_size'] = isset($matches[2]) ? $matches[2] . ' мм' : 'Невідомо';
 
@@ -76,9 +84,16 @@ function parsePage($url) {
         $data['year'] = 'Невідомо';
     }
 
-    // Парсимо тип кріплення
-    preg_match('/Крепление:\s*(.*?)<\/li>/s', $html, $matches);
-    $data['mounting_type'] = isset($matches[1]) ? cleanText($matches[1]) : 'Невідомо';
+    if (preg_match('/Крепление:\s*<a[^>]*>(.*?)<\/a>/s', $html, $matches)) {
+        // Якщо знайдено блок з кріпленням, видаляємо теги <a>
+        $data['mounting_type'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
+    } elseif (preg_match('/Подходит на:\s*<a[^>]*>(.*?)<\/a>/s', $html, $matches)) {
+        // Якщо не знайдено "Крепление", шукаємо через "Подходит на:"
+        $data['mounting_type'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
+    } else {
+        // Якщо нічого не знайдено
+        $data['mounting_type'] = 'Невідомо';
+    }
 
     // Визначаємо категорію (передні чи задні)
     $data['category'] = strpos(strtolower($data['product_name']), 'задн') !== false ? 'Задні' : 'Передні';
