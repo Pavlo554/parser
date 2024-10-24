@@ -27,15 +27,13 @@ function parsePage($url) {
     
     // Парсимо ціну
     preg_match('/<div class="text-red-600[^>]*>(\d+)\s*<span.*?>₴<\/span>/s', $html, $matches);
-
-    // Якщо червона ціна знайдена
     if (isset($matches[1])) {
         $data['product_price'] = (float)$matches[1];
     } else {
-        // Якщо червону ціну не знайдено, парсимо сіру ціну (звичайна ціна)
         preg_match('/<div class="text-gray-700[^>]*>(\d+)\s*<span.*?>₴<\/span>/s', $html, $matches);
         $data['product_price'] = isset($matches[1]) ? (float)$matches[1] : 0.0;
     }
+
     // Опис продукту
     preg_match('/<div class="content px-2[^>]*>(.*?)<ul/s', $html, $matches);
     $data['product_description'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
@@ -85,13 +83,10 @@ function parsePage($url) {
     }
 
     if (preg_match('/Крепление:\s*<a[^>]*>(.*?)<\/a>/s', $html, $matches)) {
-        // Якщо знайдено блок з кріпленням, видаляємо теги <a>
         $data['mounting_type'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
     } elseif (preg_match('/Подходит на:\s*<a[^>]*>(.*?)<\/a>/s', $html, $matches)) {
-        // Якщо не знайдено "Крепление", шукаємо через "Подходит на:"
         $data['mounting_type'] = isset($matches[1]) ? cleanText(strip_tags($matches[1])) : 'Невідомо';
     } else {
-        // Якщо нічого не знайдено
         $data['mounting_type'] = 'Невідомо';
     }
 
@@ -103,8 +98,8 @@ function parsePage($url) {
 
 // Перевіряємо, чи був надісланий URL через форму
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['product_url'])) {
-    $url = $_POST['product_url'];
-    
+    $urls = $_POST['product_url']; // Отримуємо масив URL
+
     // Підключення до бази даних
     $servername = "localhost";
     $username = "root";
@@ -117,48 +112,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['product_url'])) {
         die("Connection failed: " . $conn->connect_error);
     }
 
-    // Отримуємо дані
-    $productData = parsePage($url);
+    foreach ($urls as $url) {
+        // Отримуємо дані
+        $productData = parsePage($url);
 
-    // Підготовка SQL запиту
-    $sql = "INSERT INTO products (category, product_name, product_price, make, model, product_description, year, mounting_type, 
-            driver_wiper_size, passenger_wiper_size, type, product_code, series, brand, construction, feature) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // Підготовка SQL запиту
+        $sql = "INSERT INTO products (category, product_name, product_price, make, model, product_description, year, mounting_type, 
+                driver_wiper_size, passenger_wiper_size, type, product_code, series, brand, construction, feature) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    // Перевіряємо, чи кількість параметрів відповідає кількості полів
-    $stmt = $conn->prepare($sql);
+        // Перевіряємо, чи кількість параметрів відповідає кількості полів
+        $stmt = $conn->prepare($sql);
 
-    // Визначаємо типи даних для bind_param
-    $stmt->bind_param("ssdsssssssssssss", 
-        $productData['category'],            // s
-        $productData['product_name'],        // s
-        $productData['product_price'],       // d
-        $productData['make'],                // s
-        $productData['model'],               // s
-        $productData['product_description'], // s
-        $productData['year'],                // s
-        $productData['mounting_type'],       // s
-        $productData['driver_wiper_size'],   // s
-        $productData['passenger_wiper_size'],// s
-        $productData['type'],                // s
-        $productData['product_code'],        // s
-        $productData['series'],              // s
-        $productData['brand'],               // s
-        $productData['construction'],        // s
-        $productData['feature']              // s
-    );
+        // Визначаємо типи даних для bind_param
+        $stmt->bind_param("ssdsssssssssssss", 
+            $productData['category'],            // s
+            $productData['product_name'],        // s
+            $productData['product_price'],       // d
+            $productData['make'],                // s
+            $productData['model'],               // s
+            $productData['product_description'], // s
+            $productData['year'],                // s
+            $productData['mounting_type'],       // s
+            $productData['driver_wiper_size'],   // s
+            $productData['passenger_wiper_size'],// s
+            $productData['type'],                // s
+            $productData['product_code'],        // s
+            $productData['series'],              // s
+            $productData['brand'],               // s
+            $productData['construction'],        // s
+            $productData['feature']              // s
+        );
 
-    // Виконання запиту
-    if ($stmt->execute()) {
-        echo "Новий запис успішно додано<br>";
-        echo "<a href='index.html'>Повернутися на головну</a>";
-    } else {
-        echo "Помилка: " . $stmt->error . "<br>";
-        echo "<a href='index.html'>Повернутися на головну</a>";
+        // Виконання запиту
+        if ($stmt->execute()) {
+            echo "Новий запис успішно додано для URL: $url<br>";
+        } else {
+            echo "Помилка: " . $stmt->error . "<br>";
+        }
     }
 
     $stmt->close();
     $conn->close();
+    echo "<br><a href='index.html'>Повернутися на головну</a>";
 } else {
     echo "Будь ласка, використовуйте форму для надсилання URL.<br>";
     echo "<a href='index.html'>Повернутися на головну</a>";
