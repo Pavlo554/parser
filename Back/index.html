@@ -46,38 +46,12 @@
             background: #4cae4c;
         }
     </style>
-    <script>
-        function addUrlField() {
-            const form = document.getElementById('urlForm');
-            const newDiv = document.createElement('div');
-            newDiv.className = 'url-field';
-
-            const newInput = document.createElement('input');
-            newInput.type = 'url';
-            newInput.name = 'product_url[]'; // Додаємо масив для кількох URL
-            newInput.placeholder = 'Вставте URL продукту';
-            newInput.required = true;
-
-            const removeButton = document.createElement('button');
-            removeButton.type = 'button';
-            removeButton.className = 'remove-button';
-            removeButton.textContent = 'Видалити';
-            removeButton.onclick = function() {
-                form.removeChild(newDiv);
-            };
-
-            newDiv.appendChild(newInput);
-            newDiv.appendChild(removeButton);
-            form.appendChild(newDiv);
-        }
-    </script>
 </head>
 <body>
     <div class="container">
         <h1>Парсер продуктів</h1>
-        <form id="urlForm" action="parser.php" method="post">
-            <input type="url" name="product_url[]" placeholder="Вставте URL продукту" required>
-            <button type="button" onclick="addUrlField()">+</button> <!-- Кнопка для додавання нового поля -->
+        <form action="parser.php" method="post">
+            <input type="url" name="product_url" placeholder="Вставте URL продукту" required>
             <input type="submit" value="Парсити">
         </form>
     </div>
